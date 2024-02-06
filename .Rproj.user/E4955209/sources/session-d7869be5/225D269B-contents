@@ -41,8 +41,3 @@ GW_All <- tbl(GW, "WQTS_Data") %>%
 #  clean_names()
 
 
-gs4_auth(email = "OVIWC106@gmail.com")
-
-gs4_create("OVIWC GW Data Raw", sheets = GW_All)
-
-sheet_write(GW_All, ss = "https://docs.google.com/spreadsheets/d/1kfyElI156rpuaeALqwfXHdqJu-YC7NjtaRlDjoo9Lp4/edit#gid=1724840507")
