@@ -1,5 +1,4 @@
 "0","library(flexdashboard)"
-"2","Warning: package ‘flexdashboard’ was built under R version 4.2.3"
 "0","library(tidyverse)"
 "0","library(DBI)"
 "0","library(odbc)"
@@ -8,7 +7,9 @@
 "0","library(glue)"
 "0","library(dbplyr)"
 "0","library(janitor)"
-"0",""
+"0","library(plotly)"
+"0","library(leaflet)"
+"2","Warning: package ‘leaflet’ was built under R version 4.2.3"
 "0","GW <- dbConnect(odbc(), "
 "0","                Driver = ""SQL Server"","
 "0","                Server = ""localhost\\SQLEXPRESS"", "
@@ -26,10 +27,13 @@
 "0","  mutate(month = floor_date(StartDate, ""month""))  %>%"
 "0","  group_by(MONLOC_AB, StartDate) %>%"
 "0","  summarise(mean = mean(ResultMeasureValue)) %>%"
-"0","  clean_names()"
+"0","  rename(Well = MONLOC_AB, Date = StartDate, DTW = mean) "
 "2","Warning: [38;5;232mThere was 1 warning in `mutate()`.[39m
 [38;5;232m[36mℹ[38;5;232m In argument: `ResultMeasureValue = as.numeric(ResultMeasureValue)`.
 [36mℹ[38;5;232m In group 1: `MONLOC_AB = ""BP-Res-3""`.[39m
 Caused by warning:
 [33m![39m NAs introduced by coercion"
 "2","`summarise()` has grouped output by 'MONLOC_AB'. You can override using the `.groups` argument."
+"0"," "
+"0","GW_All$DTW <- round(GW_All$DTW, 2)"
+"0",""

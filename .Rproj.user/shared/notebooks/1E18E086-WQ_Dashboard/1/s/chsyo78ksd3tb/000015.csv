@@ -1,0 +1,17 @@
+"0",""
+"0","LP_data_past_year <- WQ_All %>%"
+"0","  filter(Project == ""SWQM-LP"") %>%"
+"0","  mutate(Date = as.Date(Date)) %>%"
+"0","  mutate(Result = as.numeric(Result)) %>%"
+"0","  filter(Date >= (Sys.Date() - years(2)))"
+"2","Warning: [38;5;232mThere was 1 warning in `mutate()`.[39m
+[38;5;232m[36mℹ[38;5;232m In argument: `Result = as.numeric(Result)`.[39m
+Caused by warning:
+[33m![39m NAs introduced by coercion"
+"0","  "
+"0",""
+"0","LP_Water_Temp_Plot <- ggplot(data = filter(LP_data_past_year, Characteristic == ""Temperature, water""), aes(x= Date, y = Result, color = Site)) +"
+"0","  geom_line() +"
+"0","  labs(title = """", y = ""Degrees C"")"
+"0",""
+"0","ggplotly(LP_Water_Temp_Plot)"

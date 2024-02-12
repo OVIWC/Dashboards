@@ -1,0 +1,8 @@
+"0","LP_leaflet_map <- leaflet(width = ""100%"") %>%"
+"0","  setView(lng = -118.05265, lat = 36.59757, zoom = 15) %>%"
+"0","  addProviderTiles(provider = providers$OpenStreetMap) %>%"
+"0","  addMarkers(lng= -118.05712, lat = 36.60078, popup = ""Well LP-Res-4"") %>%"
+"0","  addMarkers(lng= -118.05689, lat = 36.60075, popup = ""Well LP-Res-5"") %>%"
+"0","  addMarkers(lng= -118.05970, lat = 36.59436, popup = ""Well LP-Res-6"") "
+"0"," "
+"0","LP_leaflet_map"
