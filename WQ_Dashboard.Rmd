@@ -38,7 +38,10 @@ WQ_Activity <- tbl(WQ, "Activity") %>%
 
 WQ_All <- inner_join(WQ_Result,WQ_Activity, by = "ActivityIdentifier") %>%
   select(CharacteristicName, ResultMeasureValue, ResultMeasureUnitCode, StartDate.y, StartTime.y, MonitoringLocationIdentifier.y, ProjectIdentifier.y) %>%
-  rename(Characteristic = CharacteristicName, Result = ResultMeasureValue, Unit = ResultMeasureUnitCode, Date = StartDate.y, Time = StartTime.y, Site = MonitoringLocationIdentifier.y, Project = ProjectIdentifier.y) 
+  rename(Characteristic = CharacteristicName, Result = ResultMeasureValue, Unit = ResultMeasureUnitCode, Date = StartDate.y, Time = StartTime.y, Site = MonitoringLocationIdentifier.y, Project = ProjectIdentifier.y) %>%
+  mutate(Result = as.numeric(Result)) %>%
+  mutate(Result = if_else(Characteristic == "Temperature, water", (Result*9/5) + 32, Result)) %>%
+  mutate(Unit = if_else(Characteristic == "Temperature, water", "deg F", Unit))
 
 
 ```
@@ -58,7 +61,7 @@ Column {data-width=400}
 LP_data <- WQ_All %>%
   filter(Project == "SWQM-LP") %>%
   select(-Project) %>%
-  arrange(desc(Date), Site)
+  arrange(desc(Date), Site) 
 
 LP_table <- datatable(LP_data, extensions = c("Buttons", "FixedColumns"),
               filter = 'top', 
@@ -90,8 +93,8 @@ LP_data_past_year <- WQ_All %>%
   
 
 LP_Water_Temp_Plot <- ggplot(data = filter(LP_data_past_year, Characteristic == "Temperature, water"), aes(x= Date, y = Result, color = Site)) +
-  geom_line() +
-  labs(title = "", y = "Degrees C")
+  geom_point() +
+  labs(title = "", y = "Degrees F")
 
 ggplotly(LP_Water_Temp_Plot)
 
@@ -102,7 +105,7 @@ ggplotly(LP_Water_Temp_Plot)
 
 ```{r}
 LP_Water_SPC_Plot <- ggplot(data = filter(LP_data_past_year, Characteristic == "Specific conductance"), aes(x= Date, y = Result, color = Site)) +
-  geom_line() +
+  geom_point() +
   labs(title = "", y = "mS/cm")
 
 ggplotly(LP_Water_SPC_Plot)
@@ -113,7 +116,7 @@ ggplotly(LP_Water_SPC_Plot)
 
 ```{r}
 LP_Water_Turb_Plot <- ggplot(data = filter(LP_data_past_year, Characteristic == "Turbidity"), aes(x= Date, y = Result, color = Site)) +
-  geom_line() +
+  geom_point() +
   labs(title = "", y = "FNU")
 
 ggplotly(LP_Water_Turb_Plot)
@@ -130,13 +133,12 @@ BP_data <- WQ_All %>%
   select(-Project) %>%
   arrange(desc(Date), Site)
 
-BP_table <- datatable(BP_data, extensions = c("Buttons", "FixedColumns"),
+BP_table <- datatable(BP_data, extensions = c( "FixedColumns"),
               filter = 'top', 
               options = list (autoWidth = TRUE, 
-                              dom = 'blftip',
+                              dom = 'Bfrtip',
                               pageLength = 30, 
                               searchHighlight = FALSE,
-                              buttons = c('copy','csv','print'),
                               scrollx = TRUE, 
                               fixedColumns = list(leftColumns = 2)), 
               class = c('compact cell-border stripe hover'), 

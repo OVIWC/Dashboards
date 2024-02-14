@@ -1,0 +1,27 @@
+{
+    "id": "81E763E5",
+    "path": "~/Exchange Network Grant/Dashboards/WQ_Dashboard.Rmd",
+    "project_path": "WQ_Dashboard.Rmd",
+    "type": "r_markdown",
+    "hash": "2235915960",
+    "contents": "",
+    "dirty": false,
+    "created": 1707763973604.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "last_setup_crc32": "88092b19be83ab20",
+        "cursorPosition": "135,46",
+        "scrollLine": "122"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1707941706,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1707941706304,
+    "read_only": false,
+    "read_only_alternatives": []
+}

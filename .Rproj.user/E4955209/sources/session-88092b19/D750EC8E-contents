@@ -1,0 +1,189 @@
+---
+title: "OVIWC Groundwater"
+output: 
+  flexdashboard::flex_dashboard:
+    storyboard: true
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(DBI)
+library(odbc)
+library(lubridate)
+library(hms)
+library(glue)
+library(dbplyr)
+library(janitor)
+library(plotly)
+library(leaflet)
+
+GW <- dbConnect(odbc(), 
+                Driver = "SQL Server",
+                Server = "localhost\\SQLEXPRESS", 
+                Database = "WQTS", 
+                Trusted_Connection = "True")
+
+#GW data all
+
+GW_All <- tbl(GW, "WQTS_Data") %>%
+  filter(CharacteristicName == 'Depth') %>%
+  collect() %>%
+  group_by(MONLOC_AB) %>%
+  mutate(StartDate = as.Date(StartDate), ResultMeasureValue = as.numeric(ResultMeasureValue)) %>%
+  complete(StartDate = seq.Date(min(StartDate), max(StartDate), by = "day")) %>%
+  mutate(month = floor_date(StartDate, "month"))  %>%
+  group_by(MONLOC_AB, StartDate) %>%
+  summarise(mean = mean(ResultMeasureValue)) %>%
+  rename(Well = MONLOC_AB, Date = StartDate, DTW = mean) 
+ 
+GW_All$DTW <- round(GW_All$DTW, 2)
+
+```
+
+Updated `r format(Sys.time(), '%B %d, %Y')`
+
+Lone Pine
+=======================================================================
+
+
+### Groundwater Monitoring Well **LP-Res-4**
+
+```{r}
+
+LP4plot <- ggplot(data = filter(GW_All, Well == "LP-Res-4"), aes(x = Date, y = DTW)) +
+  geom_line(color = "blue") +
+  theme_bw(base_size=13) +
+  labs( x = NULL, y = "Depth To Water (feet)", title = NULL) +
+  scale_x_date(date_breaks = "1 years", date_labels = "%Y", minor_breaks = "1 year") +
+  scale_y_reverse()
+
+ggplotly(LP4plot)
+
+
+```
+
+
+### Groundwater Monitoring Well **LP-Res-5**
+
+```{r}
+
+LP5plot <- ggplot(data = filter(GW_All, Well == "LP-Res-5"), aes(x = Date, y = DTW)) +
+  geom_line(color = "blue") +
+  theme_bw(base_size=13) +
+  labs( x = NULL, y = "Depth To Water (feet)", title = NULL) +
+  scale_x_date(date_breaks = "1 years", date_labels = "%Y", minor_breaks = "1 year") +
+  scale_y_reverse()
+
+ggplotly(LP5plot)
+
+
+```
+
+### Groundwater Monitoring Well **LP-Res-6**
+
+```{r}
+
+LP6plot <- ggplot(data = filter(GW_All, Well == "LP-Res-6"), aes(x = Date, y = DTW)) +
+  geom_line(color = "blue") +
+  theme_bw(base_size=13) +
+  labs( x = NULL, y = "Depth To Water (feet)", title = NULL) +
+  scale_x_date(date_breaks = "1 years", date_labels = "%Y", minor_breaks = "1 year") +
+  scale_y_reverse()
+
+ggplotly(LP6plot)
+
+
+
+```
+
+
+
+```{r}
+#LP_leaflet_map <- leaflet() %>%
+#  setView(lng = -118.05265, lat = 36.59757, zoom = 15) %>%
+#  addProviderTiles(provider = providers$OpenStreetMap) %>%
+#  addMarkers(lng= -118.05712, lat = 36.60078, popup = "Well LP-Res-4") %>%
+#  addMarkers(lng= -118.05689, lat = 36.60075, popup = "Well LP-Res-5") %>%
+#  addMarkers(lng= -118.05970, lat = 36.59436, popup = "Well LP-Res-6") 
+ 
+#LP_leaflet_map
+```
+
+
+Big Pine
+=======================================================================
+
+### Groundwater Monitoring Well **BP-Res-3**
+
+```{r}
+BP3plot <- ggplot(data = filter(GW_All, Well == "BP-Res-3"), aes(x = Date, y = DTW)) +
+  geom_line(color = "blue") +
+  theme_bw(base_size=13) +
+  labs( x = NULL, y = "Depth To Water (feet)", title = NULL) +
+  scale_x_date(date_breaks = "1 years", date_labels = "%Y", minor_breaks = "1 year") +
+  scale_y_reverse()
+
+ggplotly(BP3plot)
+
+```
+
+
+### Groundwater Monitoring Well **BP-Res-4**
+
+```{r}
+BP4plot <- ggplot(data = filter(GW_All, Well == "BP-Res-4"), aes(x = Date, y = DTW)) +
+  geom_line(color = "blue") +
+  theme_bw(base_size=13) +
+  labs( x = NULL, y = "Depth To Water (feet)", title = NULL) +
+  scale_x_date(date_breaks = "1 years", date_labels = "%Y", minor_breaks = "1 year") +
+  scale_y_reverse()
+
+ggplotly(BP4plot)
+
+```
+
+
+Bishop
+=======================================================================
+
+### Groundwater Monitoring Well **BS-Res-1**
+
+```{r}
+
+BS1plot <- ggplot(data = filter(GW_All, Well == "BS-Res-1"), aes(x = Date, y = DTW)) +
+  geom_line(color = "blue") +
+  theme_bw(base_size=13) +
+  labs( x = NULL, y = "Depth To Water (feet)", title = NULL) +
+  scale_x_date(date_breaks = "1 years", date_labels = "%Y", minor_breaks = "1 year") +
+  scale_y_reverse()
+
+ggplotly(BS1plot)
+```
+
+
+### Groundwater Monitoring Well **BP-Res-2**
+
+```{r}
+
+BS2 <- tbl(GW, "WQTS_Data") %>%
+  filter(MONLOC_AB == "BS-Res-2") %>%
+  filter(CharacteristicName == 'Pressure') %>%
+  collect() %>%
+  mutate(StartDate = as.Date(StartDate), ResultMeasureValue = as.numeric(ResultMeasureValue)) %>%
+  complete(StartDate = seq.Date(min(StartDate), max(StartDate), by = "day")) %>%
+  group_by(StartDate) %>%
+  summarise(daily_average_psi = mean(ResultMeasureValue)) %>%
+  rename( Date = StartDate)
+
+BS2$daily_average_psi <- round(BS2$daily_average_psi, 2)
+
+BS2plot <- ggplot(data = BS2, aes(x = Date, y = daily_average_psi))+
+  geom_line(color = "blue") +
+  theme_bw(base_size=13) +
+  scale_x_date(date_breaks = "1 years", date_labels = "%Y", minor_breaks = "1 year") +
+  labs( x = NULL, y = " PSI (Artesian Well)", title = NULL)
+
+ggplotly(BS2plot)
+
+```
