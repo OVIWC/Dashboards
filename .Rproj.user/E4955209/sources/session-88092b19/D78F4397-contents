@@ -1,0 +1,114 @@
+#Web Scraping Flow data
+#Ian Bell December 2023
+
+# load required packages
+library(tidyverse)
+library(rvest)
+
+# set Working Directory
+setwd('C:/Users/envir/Documents/106/Streamflow/LADWP_WebScraping')
+
+# specify the URL to scrape
+northern_url <- "https://wsoweb.ladwp.com/Aqueduct/realtime/norealtime.htm"
+
+southern_url <- "https://wsoweb.ladwp.com/Aqueduct/realtime/sorealtime.htm"
+
+# read the HTML content of the webpage
+page <- read_html(northern_url)
+
+so_page <- read_html(southern_url)
+
+# extract the Station and Flow data table
+RockCreek <- page %>% 
+  html_node("div#RockCreek32270") %>%
+  html_text() 
+
+PleasantValleyOutflow <- page %>% 
+  html_node("div#PlesVllyOutFlow32890") %>%
+  html_text() 
+
+BishopCreekThru <- page %>% 
+  html_node("div#BishopCrkAtPlanSix39990") %>%
+  html_text() 
+
+BishopCreekAround <- page %>% 
+  html_node("div#BishopCrkAtPlanSix39980") %>%
+  html_text() 
+
+BakerCreek <- page %>% 
+  html_node("div#BakerCrk20640") %>%
+  html_text() 
+
+BigPineCreek <- page %>% 
+  html_node("div#BigPineCrkUSGS20520") %>%
+  html_text() 
+
+FishSprings <- page %>% 
+  html_node("div#FishSprngsatRR20590") %>%
+  html_text() 
+
+OwensRiverBelowBPC <- page %>% 
+  html_node("div#OwensRivBelowBPC20660") %>%
+  html_text() 
+
+TinemahaResOutflow <- page %>% 
+  html_node("div#TinemahaResOutflw00770") %>%
+  html_text() 
+
+IndependenceCreek <- so_page %>%
+  html_node("div#IndCreek00710") %>%
+  html_text() 
+  
+LonePineCreek <- so_page %>%
+  html_node("div#LonePineCrk") %>%
+  html_text() 
+
+CottonwoodCreek <- so_page %>%
+  html_node("div#CottonWdCrk00450") %>%
+  html_text() 
+
+LAAAlabamaGates <- so_page %>%
+  html_node("div#AlabamaFlow00490") %>%
+  html_text() 
+
+LAACottonwoodGates <- so_page %>%
+  html_node("div#CottonGateFlow00500") %>%
+  html_text() 
+
+# convert the list to a data frame
+flow_df <- data.frame(RockCreek, PleasantValleyOutflow, BishopCreekThru, BishopCreekAround, BakerCreek, BigPineCreek, FishSprings, OwensRiverBelowBPC, TinemahaResOutflow, IndependenceCreek, LonePineCreek, 
+                      CottonwoodCreek, LAAAlabamaGates, LAACottonwoodGates ) %>%
+  pivot_longer(cols = everything() ,names_to = "Site", values_to = "Streamflow_CFS") %>%
+  mutate('Streamflow_CFS' = as.numeric(Streamflow_CFS)) %>%
+  mutate(`DateTime` = format(Sys.time(), "%Y-%m-%d %H:%M")) %>%
+  mutate(DateTime = as.POSIXct(DateTime))
+
+# add flows for Bishop Creek 
+flow_df2 <- flow_df %>%
+  filter(Site %in% c("BishopCreekThru", "BishopCreekAround")) %>%
+  summarise(Site = "BishopCreeKTotal", Streamflow_CFS = sum(Streamflow_CFS), DateTime ) %>%
+  slice(-n())
+
+all_flow <- bind_rows(flow_df, flow_df2)
+
+
+# import streamflow csv of past values
+
+streamflow2 <- read_csv("streamflow2.csv", 
+                       col_types = cols(Streamflow_CFS = col_number(), 
+                                        DateTime = col_datetime(format = "%m/%d/%Y %H:%M")))
+
+# combine new results with old results
+
+combined <- bind_rows(all_flow, streamflow2)
+
+# save table to csv
+
+write.csv(combined, file = "streamflow2.csv", row.names = FALSE)
+
+
+  
+  
+  
+  
+ 

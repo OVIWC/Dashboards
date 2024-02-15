@@ -1,0 +1,28 @@
+{
+    "id": "FE9412E2",
+    "path": "~/Exchange Network Grant/Dashboards/Streamflow_Dashboard.Rmd",
+    "project_path": "Streamflow_Dashboard.Rmd",
+    "type": "r_markdown",
+    "hash": "1796860343",
+    "contents": "",
+    "dirty": false,
+    "created": 1707951816950.0,
+    "source_on_save": false,
+    "relative_order": 8,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "75,74",
+        "scrollLine": "63",
+        "last_setup_crc32": "88092b195b66f84e"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1707955775,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1707955775775,
+    "read_only": false,
+    "read_only_alternatives": []
+}

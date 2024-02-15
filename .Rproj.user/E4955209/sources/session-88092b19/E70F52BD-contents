@@ -1,0 +1,113 @@
+#Web Scraping Flow data
+#Ian Bell April 2023
+
+# load required packages
+library(tidyverse)
+library(rvest)
+
+setwd('C:/Users/envir/Documents/106/Streamflow/LADWP_WebScraping')
+
+# specify the URL to scrape
+url <- "https://wsoweb.ladwp.com/Aqueduct/operations/northowens.htm"
+
+# read the HTML content of the webpage
+page <- read_html(url)
+
+# extract the Station and Flow data table
+table <- page %>% 
+  html_nodes("body > table") %>% 
+  html_table()
+
+# convert the list to a data frame
+df <- as.data.frame(table)
+
+# clean up the table
+clean_table <- df %>% 
+  slice(10:13) %>% # skip first 8 rows
+  select(1:3) %>% # keep first four columns
+  mutate(`DateTime` = format(Sys.time(), "%Y-%m-%d %H:%M")) %>% # add a new column with today's date and time
+  select(`Site` = `X1`,
+         `Streamflow_CFS` = `X2`,
+         `Peak_CFS` = `X3`,
+         `DateTime` ) %>%
+  mutate(Streamflow_CFS = str_remove_all(Streamflow_CFS,"cfs"), 
+         Peak_CFS = str_remove_all(Peak_CFS, "cfs")) %>%
+  mutate(Streamflow_CFS = as.numeric(Streamflow_CFS), 
+         Peak_CFS = as.numeric(Peak_CFS)) %>%
+  mutate(DateTime = as.POSIXct(DateTime))
+
+# import streamflow csv of past values
+
+streamflow <- read_csv("Streamflow.csv", 
+              col_types = cols(Streamflow_CFS = col_number(), 
+                              Peak_CFS = col_number(), 
+                              DateTime = col_datetime(format = "%Y-%m-%d %H:%M:%S")))
+
+# combine new results with old results
+
+combined <- bind_rows(clean_table, streamflow)
+
+# save table to csv
+
+write.csv(combined, file = "streamflow.csv", row.names = FALSE)
+
+#plot Owens River 
+
+owens <- combined %>%
+          filter(Site == "Owens River Below Big Pine") %>%
+          mutate(DateTime = as.Date(DateTime)) %>%
+          filter(DateTime >= "2023-05-15 19:58:00") %>%
+          group_by(DateTime) %>%
+          summarise(Daily_Avg_CFS = mean(Streamflow_CFS))
+
+owens_hydrograph <- ggplot(data = owens, aes(x = DateTime, y = Daily_Avg_CFS)) +
+  geom_line() +
+  labs(title = "Owens River Below Big Pine", x= "Date", y= "Cubic Feet Per Second") +
+  scale_y_continuous( limits = c(0, NA))
+owens_hydrograph
+
+#plot Big Pine Creek
+
+bigpine <- combined %>%
+  filter(Site == "Big Pine Creek at USGS") %>%
+  mutate(DateTime = as.Date(DateTime)) %>%
+  filter(DateTime >= "2023-05-15 19:58:00") %>%
+  group_by(DateTime) %>%
+  summarise(Daily_Avg_CFS = mean(Streamflow_CFS))
+          
+bigpinecreek_hydrograph <- ggplot(data = bigpine, aes(x = DateTime, y = Daily_Avg_CFS)) +
+  geom_line() +
+  labs(title = "Big Pine Creek at USGS", x= "Date", y= "Cubic Feet Per Second") +
+  scale_y_continuous(limits = c(0, NA))
+bigpinecreek_hydrograph
+
+
+#plot Fish Springs
+
+fishsprings <- combined %>%
+  filter(Site == "Fish Spring at Railroad") %>%
+  mutate(DateTime = as.Date(DateTime)) %>%
+  filter(DateTime >= "2023-05-15 19:58:00") %>%
+  group_by(DateTime) %>%
+  summarise(Daily_Avg_CFS = mean(Streamflow_CFS))
+
+fishsprings_hydrograph <- ggplot(data = fishsprings, aes(x = DateTime, y = Daily_Avg_CFS)) +
+  geom_line() +
+  labs(title = "Fish Spring at Railroad", x= "Date", y= "Cubic Feet Per Second") +
+  scale_y_continuous(limits = c(0, NA))
+fishsprings_hydrograph
+
+#plot Baker Creek
+
+bakercreek <- combined %>%
+  filter(Site == "Baker Creek at LA Station") %>%
+  mutate(DateTime = as.Date(DateTime)) %>%
+  filter(DateTime >= "2023-05-15 19:58:00") %>%
+  group_by(DateTime) %>%
+  summarise(Daily_Avg_CFS = mean(Streamflow_CFS))
+
+bakercreek_hydrograph <- ggplot(data = bakercreek, aes(x = DateTime, y = Daily_Avg_CFS)) +
+  geom_line() +
+  labs(title = "Baker Creek at LA Station", x= "Date", y= "Cubic Feet Per Second") +
+  scale_y_continuous(limits = c(0, NA))
+bakercreek_hydrograph
