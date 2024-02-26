@@ -1,0 +1,28 @@
+{
+    "id": "F6FF23B4",
+    "path": "~/Exchange Network Grant/Dashboards/GW_Dashboard.Rmd",
+    "project_path": "GW_Dashboard.Rmd",
+    "type": "r_markdown",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1707951882940.0,
+    "source_on_save": false,
+    "relative_order": 9,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "0,0",
+        "scrollLine": "0",
+        "last_setup_crc32": "78012e5bc91e114a"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1707262025,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1707262025,
+    "read_only": false,
+    "read_only_alternatives": []
+}

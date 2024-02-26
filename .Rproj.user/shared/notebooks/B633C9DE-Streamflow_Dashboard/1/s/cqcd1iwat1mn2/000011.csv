@@ -1,0 +1,10 @@
+"0",""
+"0","PVOut <- ggplot(data = filter(streamflow2, Site == ""PleasantValleyOutflow"" ), aes(x = Date, y = CFS)) +"
+"0","  geom_line(color = ""blue"") +"
+"0","  theme_bw(base_size=13) +"
+"0","  labs( x = NULL, y = ""FLow CFS"", title = NULL) +"
+"0","  scale_x_date() "
+"0",""
+"0","ggplotly(PVOut)"
+"2","Error in seq.int(0, to0 - from, by) : 'to' must be a finite number
+"

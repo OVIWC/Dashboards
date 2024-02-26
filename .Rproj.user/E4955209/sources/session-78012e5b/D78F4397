@@ -1,0 +1,26 @@
+{
+    "id": "D78F4397",
+    "path": "~/106/Streamflow/LADWP_WebScraping/LADWP_Scraping_V3Report.R",
+    "project_path": null,
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1707942235108.0,
+    "source_on_save": false,
+    "relative_order": 6,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "115,1",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1708023601,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1708023601526,
+    "read_only": false,
+    "read_only_alternatives": []
+}
