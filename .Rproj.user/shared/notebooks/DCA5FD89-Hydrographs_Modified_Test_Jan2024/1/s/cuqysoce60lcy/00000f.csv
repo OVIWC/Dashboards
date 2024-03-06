@@ -1,9 +1,0 @@
-"0",""
-"0","setwd('C:/Users/envir/Documents/106/Well Hydrographs/SQL Backup')"
-"2","Warning: The working directory was changed to C:/Users/envir/Documents/106/Well Hydrographs/SQL Backup inside a notebook chunk. The working directory will be reset when the chunk is finished running. Use the knitr root.dir option in the setup chunk to change the working directory for notebook chunks."
-"0","backup_file <- ""WQTS_backup.sql"""
-"0",""
-"0","dbWriteTable(GW, ""WQTS_Data"", file = backup_file,  row.names = FALSE)"
-"2","Error in (function (classes, fdef, mtable)  : 
-  unable to find an inherited method for function ‘dbWriteTable’ for signature ‘""Microsoft SQL Server"", ""character"", ""missing""’
-"

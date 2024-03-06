@@ -3,21 +3,19 @@ title: "Payahunaduu Streamflow"
 output: 
   flexdashboard::flex_dashboard:
     storyboard: true
+    source_code: embed
 ---
 
 ```{r setup, include=FALSE}
 
 library(flexdashboard)
 library(tidyverse)
-library(DBI)
-library(odbc)
 library(lubridate)
 library(hms)
 library(glue)
-library(dbplyr)
-library(janitor)
 library(plotly)
 library(DT)
+library(crosstalk)
 
 streamflow2 <- read_csv("C:/Users/envir/Documents/106/Streamflow/LADWP_Webscraping/streamflow2.csv", 
                        col_types = cols(Streamflow_CFS = col_number(), 
@@ -26,7 +24,7 @@ streamflow2 <- read_csv("C:/Users/envir/Documents/106/Streamflow/LADWP_Webscrapi
   group_by(Site, Date) %>%
   summarise(CFS = mean(Streamflow_CFS))
 
-streamflow2$CFS <- round(streamflow2$CFS, 1)
+streamflow2$CFS <- round(streamflow2$CFS, 1) 
 
 
 raw <- read_csv("C:/Users/envir/Documents/106/Streamflow/LADWP_Webscraping/streamflow2.csv", 
@@ -176,21 +174,66 @@ ggplotly(LAAAlabamaGates)
 Data
 =======================================================================
 
+```{r filters}
+
+cleaned <- raw %>%
+  mutate(Site = case_when(
+    Site == "RockCreek" ~ "Rock Creek", 
+    Site == "PleasantValleyOutflow" ~ "PV Dam Outflow",
+    Site == "BishopCreekThru" ~ "Bishop Creek Through Powerplant",
+    Site == "BishopCreekAround" ~ "Bishop Creek Around Powerplant",
+    Site == "BakerCreek" ~ "Baker Creek",
+    Site == "BigPineCreek" ~ "Big Pine Creek",
+    Site == "FishSprings" ~ "Fish Springs", 
+    Site == "OwensRiverBelowBPC" ~ "Owens River Below Big Pine",
+    Site == "TinemahaResOutflow" ~ "Tinemaha Res Outflow",
+    Site == "IndependenceCreek" ~ "Independence Creek",
+    Site == "LonePineCreek" ~ "Lone Pine Creek",
+    Site == "CottonwoodCreek" ~ "Cottonwood Creek",
+    Site == "LAAAlabamaGates" ~ "LA Aqueduct Alabama Gates",
+    Site == "LAACottonwoodGates" ~ "LA Aqueduct Cottonwood Gates",
+    Site == "LAACottonwoodGates" ~ "LA Aqueduct Cottonwood Gates",
+    Site == "BishopCreeKTotal" ~ "Bishop Creek Total Flow", 
+    TRUE ~ Site
+  )) %>%
+  mutate(Date = as.Date(DateTime)) %>%
+  mutate(Time = format(DateTime, format = "%H:%M:%S")) %>%
+  select(-DateTime)
+
+
+
+
+sd <- SharedData$new(cleaned)
+
+
+filter_checkbox(
+    id = "raw", 
+    label = "Site", 
+    sharedData = sd, 
+    group = ~Site, 
+    inline = TRUE
+  )
+
+
+
+```
+
+
+
 
 ```{r}
 
-Streamflow_table <- datatable(raw, extensions = c( "Buttons", "FixedColumns"),
+Streamflow_table <- datatable(sd, extensions = c( "Buttons", "Scroller"),
               filter = 'top', 
-              options = list (autoWidth = TRUE, 
-                              dom = 'Bfrtip',
-                              pageLength = 30, 
+              rownames = FALSE,
+              width = "100%", 
+              style = "bootstrap",
+                            options = list (dom = 'Blrtip',
                               searchHighlight = FALSE,
                               buttons = c('copy','csv','excel','print'),
-                              scrollx = TRUE, 
-                              fixedColumns = list(leftColumns = 2)), 
-              class = c('compact cell-border stripe hover'), 
-              rownames = FALSE)
+                              scrollCollapse = FALSE
+                                    ), 
+              class = c('compact cell-border stripe hover'))
 Streamflow_table
 
 ```
-BP_table

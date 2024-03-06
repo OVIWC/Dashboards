@@ -274,11 +274,56 @@ ggsave(paste0("Plots/", format(Sys.time(), "%Y-%m-%d"), "-LP6.jpg"), plot = LP6p
 
 ```{r backup}
 
-setwd('C:/Users/envir/Documents/106/Well Hydrographs/SQL Backup')
 
-backup_file <- "WQTS_backup.sql"
+GW <- dbConnect(odbc(), 
+                Driver = "SQL Server",
+                Server = "localhost\\SQLEXPRESS", 
+                Database = "WQTS", 
+                Trusted_Connection = "True")
 
-dbWriteTable(GW, "WQTS_Data", file = backup_file,  row.names = FALSE)
+#database name
+database_name <- "GW"
+
+# Path to where to save backup
+backup_path <- 'C:/Users/envir/Documents/106/Well Hydrographs/SQL Backup/20240227.bak'
+
+# Filename for the backup file
+backup_filename <- paste(database_name, "_backup_", format(Sys.Date(), "%Y%m%d"), ".bak", sep = "")
+
+# Construct backup command
+backup_command <- paste0("BACKUP DATABASE GW TO DISK = '", backup_path,  "'")
+
+# Execute backup command
+dbExecute(GW, backup_command)
+
+# Close connection
+odbcClose(conn)
+
+
+
+# Define the database connection details
+server <- "localhost\\SQLEXPRESS"
+database <- "WQTS"
+user <- "DESKTOP-GT9KNAF/enviro"
+password <- ""
+
+
+# Path where you want to store the backup file
+backup_file <- "C:/Users/envir/Documents/106/Well Hydrographs/SQL Backup/20240227.bak"
+
+# Build the SQL Server Backup Command
+backup_command <- paste0(
+  "sqlcmd -S ", server,
+  " -d ", database,
+  " -E ", 
+  " -Q \"BACKUP DATABASE [", database, "] TO DISK='", backup_file, "'\""
+)
+
+# Execute the backup command
+system(backup_command)
+
+
+
 
 ```
 

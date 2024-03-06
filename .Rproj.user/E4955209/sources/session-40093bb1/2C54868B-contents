@@ -1,0 +1,416 @@
+---
+title: "Hydrographs"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+date: "`r format(Sys.time(), '%B, %Y')`"
+figure_width: 6.5
+figure_height: 4
+figure_asp: 1
+dpi: 300
+---
+1. Load libraries
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(DBI)
+library(odbc)
+library(lubridate)
+library(hms)
+library(glue)
+library(dbplyr)
+```
+
+2. Connect to Groundwater database. Query database to find the last recorded datapoint from each groundwater well.
+
+```{r GW database connection, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+
+GW <- dbConnect(odbc(), 
+                Driver = "SQL Server",
+                Server = "localhost\\SQLEXPRESS", 
+                Database = "WQTS", 
+                Trusted_Connection = "True")
+
+GW_last_datapoint <- tbl(GW, "WQTS_Data") %>%
+  group_by(MONLOC_AB) %>%
+  filter(CharacteristicName == 'Depth') %>%
+  slice_max(StartDate) %>%
+  slice_max(StartTime) %>%
+  select(MONLOC_AB, StartDate, StartTime) %>%
+  collect() %>%
+  mutate(StartTime = substr(StartTime, 1,8)) %>%
+  mutate(StartDate = as.Date(StartDate)) %>%
+  mutate(datetime = as.POSIXct(paste(StartDate, StartTime), format = "%Y-%m-%d %H:%M:%S")) %>%
+  select(MONLOC_AB, datetime)
+
+
+```
+
+3. Load new raw data from groundwater dataloggers. Filter results to only keep new recorded data based on what is already in the database. 
+
+```{r add raw data to DB, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+
+setwd('C:/Users/envir/Documents/106/Well Hydrographs')
+
+#Create list all csv files (except BS2)
+temp <- list.files("C:/Users/envir/Documents/106/Well Hydrographs/Data", full.names = TRUE, pattern = "\\.csv$")
+
+#Read list of csv files, tidy
+raw_data <- readr::read_csv(temp, id = "Well", skip = 11, col_types = cols(`Date and Time` = col_datetime(format = "%m/%d/%Y %H:%M:%S %p"))) %>%
+  select(1:6) %>%
+  mutate(Well = str_extract_all(Well, "..-Res-.")) %>%
+  mutate(Well = as.character(Well))
+
+# Tidying and reconfigure, keep only new data
+newdb <- raw_data %>%
+  pivot_longer(cols = 4:6, names_to = 'CharacteristicName', values_to = 'ResultMeasureValue') %>%
+  rename(MONLOC_AB = Well) %>%
+  mutate(StartDate = date(`Date and Time`)) %>%
+  mutate(StartTime = strftime(`Date and Time`, "%H:%M")) %>%
+  mutate(DataLoggerLineName = '2023') %>%
+  mutate(Deployment = '2023') %>%
+  mutate(ProjectIdentifier = case_when((MONLOC_AB == 'LP-Res-4' | MONLOC_AB == 'LP-Res-5' | MONLOC_AB == 'LP-Res-6') ~ 'GWQM-LP',
+                (MONLOC_AB == 'BP-Res-3' | MONLOC_AB == 'BP-Res-4') ~ 'GWQM-BP',
+                (MONLOC_AB == 'BS-Res-1' | MONLOC_AB == 'BS-Res-2') ~ 'BSGW')) %>%
+  mutate(Date= strftime(`Date and Time`, "%Y%m%d")) %>%
+  mutate (ActivityIdentifier = glue('{MONLOC_AB}-{Date}-GW')) %>%
+  mutate(ActivityMediaName = 'Water') %>%
+  mutate(CharacteristicName = case_when(CharacteristicName == 'Level Depth To Water (ft)' ~ 'Depth', CharacteristicName == 'Pressure (PSI)' ~ 'Pressure', CharacteristicName == 'Temperature (F)' ~ 'Temperature, water')) %>%
+  mutate(ResultMeasureUnitCode = case_when(CharacteristicName == 'Depth' ~ 'ft', CharacteristicName == 'Pressure' ~ 'psi', CharacteristicName == 'Temperature, water' ~ 'deg F')) %>%
+  mutate(DataType = 'Raw') %>%
+  mutate(UseForCalc = 1) %>%
+  mutate(COMMENTS = '') %>%
+  select(MONLOC_AB, StartDate, StartTime, DataLoggerLineName, Deployment, ProjectIdentifier, ActivityIdentifier, ActivityMediaName, CharacteristicName, ResultMeasureValue, ResultMeasureUnitCode, DataType, UseForCalc, COMMENTS) %>%
+  mutate(datetime = as.POSIXct(paste(StartDate, StartTime), format = "%Y-%m-%d %H:%M")) %>%
+  left_join(GW_last_datapoint, by = "MONLOC_AB") %>%
+  filter(datetime.x > datetime.y) %>%
+  select(-datetime.x, -datetime.y)
+  
+
+filename <- paste("NewCSVsforDB/", format(Sys.time(), "%Y-%m-%d"),"newGWData.csv")
+
+write_csv(newdb, filename)
+                           
+```
+
+4. The above csv will be written to c:\Users\envir\Documents\106\Well Hydrographs\NewCSVsforDB with today's date. 
+
+
+```{r GW database connection, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+
+GW <- dbConnect(odbc(), 
+                Driver = "SQL Server",
+                Server = "localhost\\SQLEXPRESS", 
+                Database = "WQTS", 
+                Trusted_Connection = "True")
+
+#append the new data to the GW Database
+
+dbWriteTable(GW, "WQTS_Data", newdb, append = TRUE)
+
+```
+
+5. Generate hydrograph for each groundwater well
+
+```{r BS1, echo=FALSE, message=FALSE, warning=FALSE, dpi=600, paged.print=FALSE}
+
+BS1 <- tbl(GW, "WQTS_Data") %>%
+  filter(MONLOC_AB == "BS-Res-1") %>%
+  filter(CharacteristicName == 'Depth') %>%
+  collect() %>%
+  mutate(StartDate = as.Date(StartDate), ResultMeasureValue = as.numeric(ResultMeasureValue)) %>%
+  complete(StartDate = seq.Date(min(StartDate), max(StartDate), by = "day")) %>%
+  mutate(month = floor_date(StartDate, "month"))  %>%
+  group_by(StartDate) %>%
+  summarise(mean = mean(ResultMeasureValue))
+
+
+BS1plot <- ggplot(BS1, aes(x = StartDate, y = mean)) +
+  geom_line(color = "blue") +
+  geom_smooth(color = "red") +
+  theme_bw(base_size=15) +
+  labs( x = NULL, y = "Depth To Water (feet)", title = "BS-Res-1") +
+  scale_y_reverse()
+BS1plot
+
+ggsave(paste0("Plots/", format(Sys.time(), "%Y-%m-%d"), "-BS1.jpg"), plot = BS1plot, dpi= 400, width = 7.5, height= 4, units = "in")
+```
+
+```{r BS2, echo=FALSE, message=FALSE, warning=FALSE, dpi=600, paged.print=FALSE}
+
+BS2 <- tbl(GW, "WQTS_Data") %>%
+  filter(MONLOC_AB == "BS-Res-2") %>%
+  filter(CharacteristicName == 'Pressure') %>%
+  collect() %>%
+  mutate(StartDate = as.Date(StartDate), ResultMeasureValue = as.numeric(ResultMeasureValue)) %>%
+  complete(StartDate = seq.Date(min(StartDate), max(StartDate), by = "day")) %>%
+  group_by(StartDate) %>%
+  summarise(mean = mean(ResultMeasureValue))
+
+BS2plot <- ggplot(BS2, aes(x = StartDate, y = mean)) +
+  geom_line(color = "blue") +
+  geom_smooth(color = "red") +
+  theme_bw(base_size=15) +
+  labs( x = NULL, y = " PSI (Artesian Well)", title = " BS-Res-2")
+BS2plot
+
+ggsave(paste0("Plots/", format(Sys.time(), "%Y-%m-%d"), "-BS2.jpg"), plot = BS2plot, dpi= 400, width = 7.5, height= 4, units = "in")
+```
+
+```{r BP3, echo=FALSE, message=FALSE, warning=FALSE, dpi=600, paged.print=FALSE}
+
+BP3 <- tbl(GW, "WQTS_Data") %>%
+  filter(MONLOC_AB == "BP-Res-3") %>%
+  filter(CharacteristicName == 'Depth') %>%
+  collect() %>%
+  mutate(StartDate = as.Date(StartDate), ResultMeasureValue = as.numeric(ResultMeasureValue)) %>%
+  complete(StartDate = seq.Date(min(StartDate), max(StartDate), by = "day")) %>%
+  group_by(StartDate) %>%
+  summarize(mean = mean(ResultMeasureValue))
+
+BP3plot <- ggplot(BP3, aes(x = StartDate, y = mean)) +
+  geom_line(color = "blue") +
+  geom_smooth(color = "red") +
+  theme_bw(base_size=15) +
+  labs( x = NULL, y = "Depth To Water (feet)", title = "BP-Res-3")+
+  scale_y_reverse()
+BP3plot
+
+ggsave(paste0("Plots/", format(Sys.time(), "%Y-%m-%d"), "-BP3.jpg"), plot = BP3plot, dpi= 400, width = 7.5, height= 4, units = "in")
+```
+
+```{r BP4, echo=FALSE, message=FALSE, warning=FALSE, dpi=600}
+
+BP4 <- tbl(GW, "WQTS_Data") %>%
+  filter(MONLOC_AB == "BP-Res-4") %>%
+  filter(CharacteristicName == 'Depth') %>%
+  collect() %>%
+  mutate(StartDate = as.Date(StartDate), ResultMeasureValue = as.numeric(ResultMeasureValue)) %>%
+  complete(StartDate = seq.Date(min(StartDate), max(StartDate), by = "day")) %>%
+  group_by(StartDate) %>%
+  summarize(mean = mean(ResultMeasureValue))
+
+BP4plot <- ggplot(BP4, aes(x = StartDate, y = mean)) +
+  geom_line(color = "blue") +
+  geom_smooth(color = "red") +
+  theme_bw(base_size=15) +
+  labs( x = NULL, y = "Depth To Water (feet)", title = "BP-Res-4")+
+  scale_y_reverse()
+BP4plot
+
+ggsave(paste0("Plots/", format(Sys.time(), "%Y-%m-%d"), "-BP4.jpg"), plot = BP4plot, dpi= 400, width = 7.5, height= 4, units = "in")
+```
+
+```{r LP4, echo=FALSE, message=FALSE, warning=FALSE, dpi=600}
+
+LP4 <- tbl(GW, "WQTS_Data") %>%
+  filter(MONLOC_AB == "LP-Res-4") %>%
+  filter(CharacteristicName == 'Depth') %>%
+  collect() %>%
+  mutate(StartDate = as.Date(StartDate), ResultMeasureValue = as.numeric(ResultMeasureValue)) %>%
+  complete(StartDate = seq.Date(min(StartDate), max(StartDate), by = "day")) %>%
+  group_by(StartDate) %>%
+  summarise(mean = mean(ResultMeasureValue))
+
+LP4plot <- ggplot(LP4, aes(x = StartDate, y = mean)) +
+  geom_line(color = "blue") +
+  geom_smooth(color = "red") +
+  theme_bw(base_size=15) +
+  labs( x = NULL, y = "Depth To Water (feet)", title = "LP-Res-4")+
+  scale_y_reverse()
+LP4plot
+
+ggsave(paste0("Plots/", format(Sys.time(), "%Y-%m-%d"), "-LP4.jpg"), plot = LP4plot, dpi= 400, width = 7.5, height= 4, units = "in")
+```
+
+```{r LP5, echo=FALSE, message=FALSE, warning=FALSE, dpi=600}
+
+LP5 <- tbl(GW, "WQTS_Data") %>%
+  filter(MONLOC_AB == "LP-Res-5") %>%
+  filter(CharacteristicName == 'Depth') %>%
+  collect() %>%
+  mutate(StartDate = as.Date(StartDate), ResultMeasureValue = as.numeric(ResultMeasureValue)) %>%
+  complete(StartDate = seq.Date(min(StartDate), max(StartDate), by = "day")) %>%
+  group_by(StartDate) %>%
+  summarise(mean = mean(ResultMeasureValue))
+
+LP5plot <- ggplot(LP5, aes(x = StartDate, y = mean)) +
+  geom_line(color = "blue") +
+  geom_smooth(color = "red") +
+  theme_bw(base_size=15) +
+  labs( x = NULL, y = "Depth To Water (feet)", title = "LP-Res-5")+
+  scale_y_reverse()
+LP5plot
+
+ggsave(paste0("Plots/", format(Sys.time(), "%Y-%m-%d"), "-LP5.jpg"), plot = LP5plot, dpi= 400, width = 7.5, height= 4, units = "in")
+```
+
+```{r LP6, echo=FALSE, message=FALSE, warning=FALSE, dpi=600}
+
+LP6 <- tbl(GW, "WQTS_Data") %>%
+  filter(MONLOC_AB == "LP-Res-6") %>%
+  filter(CharacteristicName == 'Depth') %>%
+  collect() %>%
+  mutate(StartDate = as.Date(StartDate), ResultMeasureValue = as.numeric(ResultMeasureValue)) %>%
+  complete(StartDate = seq.Date(min(StartDate), max(StartDate), by = "day")) %>%
+  group_by(StartDate) %>%
+  summarise(mean = mean(ResultMeasureValue))
+
+LP6plot <- ggplot(LP6, aes(x = StartDate, y = mean)) +
+  geom_line(color = "blue") +
+  geom_smooth(color = "red") +
+  theme_bw(base_size=15) +
+  labs( x = NULL, y = "Depth To Water (feet)", title = "LP-Res-6")+
+  scale_y_reverse()
+LP6plot
+
+ggsave(paste0("Plots/", format(Sys.time(), "%Y-%m-%d"), "-LP6.jpg"), plot = LP6plot, dpi= 400, width = 7.5, height= 4, units = "in")
+```
+
+
+6. Save SQL backup
+
+```{r backup}
+
+
+GW <- dbConnect(odbc(), 
+                Driver = "SQL Server",
+                Server = "localhost\\SQLEXPRESS", 
+                Database = "WQTS", 
+                Trusted_Connection = "True")
+
+#database name
+database_name <- "GW"
+
+# Path to where to save backup
+backup_path <- 'C:/Users/envir/Documents/106/Well Hydrographs/SQL Backup/20240227.bak'
+
+# Filename for the backup file
+backup_filename <- paste(database_name, "_backup_", format(Sys.Date(), "%Y%m%d"), ".bak", sep = "")
+
+# Construct backup command
+backup_command <- paste0("BACKUP DATABASE GW TO DISK = '", backup_path,  "'")
+
+# Execute backup command
+dbExecute(GW, backup_command)
+
+# Close connection
+odbcClose(conn)
+
+
+
+# Define the database connection details
+server <- "localhost\\SQLEXPRESS"
+database <- "WQTS"
+user <- "DESKTOP-GT9KNAF/enviro"
+password <- ""
+
+
+# Path where you want to store the backup file
+backup_file <- "C:/Users/envir/Documents/106/Well Hydrographs/SQL Backup/20240227.bak"
+
+# Build the SQL Server Backup Command
+backup_command <- paste0(
+  "sqlcmd -S ", server,
+  " -d ", database,
+  " -E ", 
+  " -Q \"BACKUP DATABASE [", database, "] TO DISK='", backup_file, "'\""
+)
+
+# Execute the backup command
+system(backup_command)
+
+
+
+
+```
+
+
+
+
+
+
+
+```{r LP5GAp, echo=FALSE, message=FALSE, warning=FALSE, dpi=600}
+
+#Troubleshooting and fixing bad depth values from an incorrect level reference adjustment at LP5 from 2020-11-24 to 2021-01-26
+
+LP5_Gap <- tbl(GW, "WQTS_Data") %>%
+  filter(MONLOC_AB == "LP-Res-5") %>%
+  filter(CharacteristicName == 'Depth') %>%
+  filter(StartDate >= "2020-08-01" & StartDate <= "2021-03-01") %>%
+  collect() %>%
+  mutate(StartDate = as.Date(StartDate), ResultMeasureValue = as.numeric(ResultMeasureValue)) %>%
+  complete(StartDate = seq.Date(min(StartDate), max(StartDate), by = "day")) %>%
+  group_by(StartDate) %>%
+  summarise(mean = mean(ResultMeasureValue))
+
+LP5_Gap_Raw <- tbl(GW, "WQTS_Data") %>%
+  filter(MONLOC_AB == "LP-Res-5") %>%
+  filter(CharacteristicName == 'Depth') %>%
+  filter(StartDate >= "2020-08-01" & StartDate <= "2021-03-01") %>%
+  collect() %>%
+  mutate(StartDate = as.Date(StartDate), ResultMeasureValue = as.numeric(ResultMeasureValue)) 
+
+LP5_gap_plot <- ggplot(LP5_Gap, aes(x = StartDate, y = mean)) +
+  geom_line(color = "blue") +
+  geom_smooth(color = "red") +
+  theme_bw(base_size=15) +
+  labs( x = NULL, y = "Depth To Water (feet)", title = "LP-Res-5")+
+  scale_y_reverse()
+LP5_gap_plot
+
+#Create CSV to add to database to correct wrong values. Need to delete from Database first 
+Try2 <- tbl(GW, "WQTS_Data") %>%
+  filter(MONLOC_AB == "LP-Res-5") %>%
+  filter(CharacteristicName == 'Depth') %>%
+  filter(StartDate >= "2020-11-24" & StartDate <= "2021-01-26") %>%
+  collect() %>%
+  mutate(StartDate = as.Date(StartDate), ResultMeasureValue = as.numeric(ResultMeasureValue)) %>%
+  mutate(ResultMeasureValue = (ResultMeasureValue - 4)) %>%
+  select(!c(TS_ID, CreatedDateTime, LastChangeDate))
+
+filename2 <- paste("NewCSVsforDB/", format(Sys.time(), "%Y-%m-%d"),"LP5Repair.csv")
+
+write_csv(Try2, filename2)
+
+# SQL to delete records from Database
+
+#SELECT        TOP (2000) TS_ID, MONLOC_AB, StartDate, StartTime, DataLoggerLineName, Deployment, ProjectIdentifier, ActivityIdentifier, ActivityMediaName, CharacteristicName, ResultMeasureValue, ResultMeasureUnitCode, DataType, 
+                         UseForCalc, COMMENTS, CreatedDateTime, LastChangeDate
+#FROM            WQTS_Data
+#WHERE        (MONLOC_AB = 'LP-Res-5') AND (CharacteristicName = 'Depth') AND (StartDate >= '2020-11-24') AND (StartDate <= '2021-01-26')
+
+
+
+#translate_sql(tbl(GW, "WQTS_Data") %>%
+#  filter(MONLOC_AB == "LP-Res-5") %>%
+# filter(CharacteristicName == 'Depth') %>%
+#  filter(StartDate >= "2020-11-24" & StartDate <= "2021-01-26") %>%
+#  mutate(ResultMeasureValue = ResultMeasureValue + 4))
+
+#ggsave(paste0("Plots/", format(Sys.time(), "%Y-%m-%d"), "-LP5.jpg"), plot = LP5plot, dpi= 400, width = 7.5, height= 4, units = "in")
+                         
+                         
+#OLD CODE when BS2 had a slightly different format
+                         
+#Read BS2, tidy (slightly different format)
+#BS2 <- read_csv("C:/Users/envir/Documents/106/Well Hydrographs/BS2 Data/BS-Res-2.csv", skip = 11, col_types = cols(`Date and Time` = col_datetime(format = "%m/%d/%Y %H:%M:%S %p"))) %>%
+#  select(1:5) %>%
+#  mutate(Well = "BS-Res-2") %>%
+#  relocate(Well)%>%
+#  rename('Level Depth To Water (ft)' = 'Depth (ft)')
+
+#Combine all wells
+#all <- bind_rows(raw_data, BS2)                          
+                         
+                         
+```
+
+translate_sql(tbl(GW, "WQTS_Data") %>%
+filter(MONLOC_AB == "LP-Res-5") %>%
+filter(CharacteristicName == 'Depth') %>%
+filter(StartDate >= "2020-11-24" & StartDate <= "2021-01-26") %>%
+mutate(ResultMeasureValue = ResultMeasureValue + 4))

@@ -1,0 +1,32 @@
+"0","server <- ""localhost\\SQLEXPRESS""
+database <- ""WQTS""
+user <- ""DESKTOP-GT9KNAF/enviro""
+password <- """"
+
+
+# Path where you want to store the backup file
+backup_file <- ""C:/Users/envir/Documents/106/Well Hydrographs/SQL Backup/20240227.bak""
+
+# Build the SQL Server Backup Command
+backup_command <- paste0(
+  ""sqlcmd -S "", server,
+  "" -d "", database,
+  "" -E "", 
+  "" -Q \""BACKUP DATABASE ["", database, ""] TO DISK='"", backup_file, ""'\""""
+)
+
+# Execute the backup command
+system(backup_command)
+"
+"1","Msg 3201, Level 16, State 1, Server DESKTOP-GT9KNAF\SQLEXPRESS, Line 1
+"
+"1","Cannot open backup device 'C:/Users/envir/Documents/106/Well Hydrographs/SQL Backup/20240227.bak'. Operating system error 5(Access is denied.).
+"
+"1","Msg 3013, Level 16, State 1, Server DESKTOP-GT9KNAF\SQLEXPRESS, Line 1
+"
+"1","BACKUP DATABASE is terminating abnormally.
+"
+"1","[1]"
+"1"," 0"
+"1","
+"
