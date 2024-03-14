@@ -3,20 +3,18 @@ title: "OVIWC Groundwater"
 output: 
   flexdashboard::flex_dashboard:
     storyboard: true
+    source_code: embed
 ---
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
 library(tidyverse)
-library(DBI)
 library(odbc)
-library(lubridate)
-library(hms)
-library(glue)
 library(dbplyr)
 library(janitor)
 library(plotly)
-library(leaflet)
+
+#Connect to SQL GW Database
 
 GW <- dbConnect(odbc(), 
                 Driver = "SQL Server",
@@ -46,7 +44,6 @@ Updated `r format(Sys.time(), '%B %d, %Y')`
 Lone Pine
 =======================================================================
 
-
 ### Groundwater Monitoring Well **LP-Res-4**
 
 ```{r}
@@ -62,7 +59,6 @@ ggplotly(LP4plot)
 
 
 ```
-
 
 ### Groundwater Monitoring Well **LP-Res-5**
 
@@ -97,20 +93,6 @@ ggplotly(LP6plot)
 
 ```
 
-
-
-```{r}
-#LP_leaflet_map <- leaflet() %>%
-#  setView(lng = -118.05265, lat = 36.59757, zoom = 15) %>%
-#  addProviderTiles(provider = providers$OpenStreetMap) %>%
-#  addMarkers(lng= -118.05712, lat = 36.60078, popup = "Well LP-Res-4") %>%
-#  addMarkers(lng= -118.05689, lat = 36.60075, popup = "Well LP-Res-5") %>%
-#  addMarkers(lng= -118.05970, lat = 36.59436, popup = "Well LP-Res-6") 
- 
-#LP_leaflet_map
-```
-
-
 Big Pine
 =======================================================================
 
@@ -142,7 +124,6 @@ BP4plot <- ggplot(data = filter(GW_All, Well == "BP-Res-4"), aes(x = Date, y = D
 ggplotly(BP4plot)
 
 ```
-
 
 Bishop
 =======================================================================
