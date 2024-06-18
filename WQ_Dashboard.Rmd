@@ -37,8 +37,8 @@ WQ_Activity <- tbl(WQ, "Activity") %>%
   collect()
 
 WQ_All <- inner_join(WQ_Result,WQ_Activity, by = "ActivityIdentifier") %>%
-  select(CharacteristicName, ResultMeasureValue, ResultMeasureUnitCode, StartDate.y, StartTime.y, MonitoringLocationIdentifier.y, ProjectIdentifier.y) %>%
-  rename(Characteristic = CharacteristicName, Result = ResultMeasureValue, Unit = ResultMeasureUnitCode, Date = StartDate.y, Time = StartTime.y, Site = MonitoringLocationIdentifier.y, Project = ProjectIdentifier.y) %>%
+  select(CharacteristicName.x, ResultMeasureValue.x, ResultMeasureUnitCode.x, StartDate.y, StartTime.y, MonitoringLocationIdentifier.y, ProjectIdentifier.y) %>%
+  rename(Characteristic = CharacteristicName.x, Result = ResultMeasureValue.x, Unit = ResultMeasureUnitCode.x, Date = StartDate.y, Time = StartTime.y, Site = MonitoringLocationIdentifier.y, Project = ProjectIdentifier.y) %>%
   mutate(Result = as.numeric(Result)) %>%
   mutate(Result = if_else(Characteristic == "Temperature, water", (Result*9/5) + 32, Result)) %>%
   mutate(Unit = if_else(Characteristic == "Temperature, water", "deg F", Unit))
