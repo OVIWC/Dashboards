@@ -93,6 +93,8 @@ ggplotly(LP6plot)
 
 ```
 
+
+
 Big Pine
 =======================================================================
 
@@ -124,6 +126,8 @@ BP4plot <- ggplot(data = filter(GW_All, Well == "BP-Res-4"), aes(x = Date, y = D
 ggplotly(BP4plot)
 
 ```
+
+
 
 Bishop
 =======================================================================
@@ -168,3 +172,26 @@ BS2plot <- ggplot(data = BS2, aes(x = Date, y = daily_average_psi))+
 ggplotly(BS2plot)
 
 ```
+
+
+
+
+Maps
+=======================================================================
+
+### Monitoring Well Maps {.storyboard}
+
+<div style="overflow-y: auto; max-height: 100%; padding-right: 15px;">
+
+  <h4>Lone Pine Monitoring Wells</h4>
+  <img src="images/LonePineWells.png" style="width:65%;"><br><br>
+
+  <h4>Big Pine Monitoring Wells</h4>
+  <img src="images/BigPineWells.png" style="width:65%;"><br><br>
+
+  <h4>Bishop Monitoring Wells</h4>
+  <img src="images/BishopWells.png" style="width:65%;">
+
+</div>
+
+
